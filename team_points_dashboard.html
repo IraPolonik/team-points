@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team Points Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;600;700&family=Onest:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0D0F14;
+    --surface:   #151820;
+    --surface2:  #1C2030;
+    --border:    rgba(255,255,255,0.06);
+    --enroll:    #5B9CF6;
+    --left:      #FF6B6B;
+    --right:     #FFB547;
+    --enroll-dim:rgba(91,156,246,0.12);
+    --left-dim:  rgba(255,107,107,0.12);
+    --right-dim: rgba(255,181,71,0.12);
+    --text:      #E8EAF0;
+    --muted:     #6B7280;
+    --radius:    16px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Onest', sans-serif;
+    min-height: 100vh;
+    padding: 32px 24px 60px;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 36px;
+  }
+  .header-left h1 {
+    font-family: 'Unbounded', sans-serif;
+    font-size: clamp(22px, 4vw, 36px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    background: linear-gradient(135deg, #fff 0%, #8ca8d8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header-left p {
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 6px;
+    font-weight: 300;
+  }
+
+  /* ── Period selector ── */
+  .period-bar {
+    display: flex;
+    gap: 6px;
+    background: var(--surface);
+    padding: 5px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .period-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Onest', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .period-btn:hover { color: var(--text); background: var(--surface2); }
+  .period-btn.active {
+    background: #5B9CF6;
+    color: #fff;
+    font-weight: 600;
+  }
+
+  /* ── Custom range ── */
+  .custom-range {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 20px;
+  }
+  .custom-range.visible { display: flex; }
+  .custom-range label { color: var(--muted); font-size: 13px; }
+  .custom-range input[type="date"] {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-family: 'Onest', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .custom-range input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
+  .apply-btn {
+    padding: 8px 18px;
+    border-radius: 8px;
+    border: none;
+    background: var(--enroll);
+    color: #fff;
+    font-family: 'Onest', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .apply-btn:hover { opacity: 0.85; }
+
+  /* ── KPI cards ── */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .kpi.enroll::before { background: var(--enroll); }
+  .kpi.left::before   { background: var(--left); }
+  .kpi.right::before  { background: var(--right); }
+  .kpi-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px; font-weight: 500; }
+  .kpi-value { font-family: 'Unbounded', sans-serif; font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
+  .kpi.enroll .kpi-value { color: var(--enroll); }
+  .kpi.left   .kpi-value { color: var(--left); }
+  .kpi.right  .kpi-value { color: var(--right); }
+  .kpi-delta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .kpi-delta .pos { color: #4ade80; }
+  .kpi-delta .neg { color: var(--left); }
+
+  /* ── Charts ── */
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 28px;
+    margin-bottom: 20px;
+  }
+  .chart-title {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .chart-wrap { position: relative; height: 260px; }
+  .chart-wrap.tall { height: 320px; }
+
+  .sub-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 40px;
+  }
+
+  /* ── How to update section ── */
+  .update-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 28px;
+    margin-bottom: 20px;
+  }
+  .update-card summary {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    text-transform: uppercase;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .update-card summary::before { content: '▶'; font-size: 9px; transition: transform 0.2s; }
+  .update-card[open] summary::before { transform: rotate(90deg); }
+  .update-card .instructions {
+    margin-top: 18px;
+    display: grid;
+    gap: 10px;
+  }
+  .step {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .step-num {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--enroll);
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  code {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 12px;
+    color: var(--right);
+    font-family: 'Courier New', monospace;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>Team Points</h1>
+    <p id="date-range-label">Загрузка данных…</p>
+  </div>
+  <div class="period-bar">
+    <button class="period-btn active" data-period="all">Всё время</button>
+    <button class="period-btn" data-period="3d">3 дня</button>
+    <button class="period-btn" data-period="7d">Неделя</button>
+    <button class="period-btn" data-period="14d">2 недели</button>
+    <button class="period-btn" data-period="21d">3 недели</button>
+    <button class="period-btn" data-period="custom">Свой период</button>
+  </div>
+</div>
+
+<div class="custom-range" id="custom-range">
+  <label>С</label>
+  <input type="date" id="date-from">
+  <label>по</label>
+  <input type="date" id="date-to">
+  <button class="apply-btn" id="apply-custom">Применить</button>
+</div>
+
+<div class="kpi-row">
+  <div class="kpi enroll">
+    <div class="kpi-label">Enrollment</div>
+    <div class="kpi-value" id="kpi-enroll">—</div>
+    <div class="kpi-delta" id="kpi-enroll-delta"></div>
+  </div>
+  <div class="kpi left">
+    <div class="kpi-label">Left Team</div>
+    <div class="kpi-value" id="kpi-left">—</div>
+    <div class="kpi-delta" id="kpi-left-delta"></div>
+  </div>
+  <div class="kpi right">
+    <div class="kpi-label">Right Team</div>
+    <div class="kpi-value" id="kpi-right">—</div>
+    <div class="kpi-delta" id="kpi-right-delta"></div>
+  </div>
+</div>
+
+<div class="chart-card">
+  <div class="chart-title">Все показатели</div>
+  <div class="chart-wrap tall"><canvas id="chart-combined"></canvas></div>
+</div>
+
+<div class="sub-grid">
+  <div class="chart-card">
+    <div class="chart-title" style="color:var(--enroll)">Enrollment Team Points</div>
+    <div class="chart-wrap"><canvas id="chart-enroll"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title" style="color:var(--left)">Left Team Points</div>
+    <div class="chart-wrap"><canvas id="chart-left"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title" style="color:var(--right)">Right Team Points</div>
+    <div class="chart-wrap"><canvas id="chart-right"></canvas></div>
+  </div>
+</div>
+
+<div class="footer">Team Points Dashboard · данные обновляются вручную · открывается в любом браузере</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// ДАННЫЕ — добавляй новые строки сюда перед закрывающей ];
+// ═══════════════════════════════════════════════════════════
+const RAW_DATA = [
+{"date":"2026-01-01T00:00:00","enrollment":30030,"left":6035,"right":29551},
+{"date":"2026-03-08T00:00:00","enrollment":31528,"left":6125,"right":30611},
+{"date":"2026-03-18T00:00:00","enrollment":32506,"left":6257,"right":31577},
+{"date":"2026-03-19T00:00:00","enrollment":32489,"left":6340,"right":31566},
+{"date":"2026-03-20T00:00:00","enrollment":32550,"left":6328,"right":31663},
+{"date":"2026-03-21T00:00:00","enrollment":32586,"left":6274,"right":31735},
+{"date":"2026-03-24T00:00:00","enrollment":33474,"left":6286,"right":32545},
+{"date":"2026-03-24T00:00:00","enrollment":33876,"left":6376,"right":32947},
+{"date":"2026-03-24T00:00:00","enrollment":33978,"left":6388,"right":33055},
+{"date":"2026-03-25T00:00:00","enrollment":34068,"left":6406,"right":33139},
+{"date":"2026-03-25T00:00:00","enrollment":34368,"left":6460,"right":33391},
+{"date":"2026-03-26T00:00:00","enrollment":34825,"left":6508,"right":33842},
+{"date":"2026-03-27T00:00:00","enrollment":34873,"left":6526,"right":33884},
+{"date":"2026-03-28T00:00:00","enrollment":35143,"left":6562,"right":34136},
+{"date":"2026-03-28T00:00:00","enrollment":35245,"left":6646,"right":34244},
+{"date":"2026-03-29T00:00:00","enrollment":35509,"left":6622,"right":34490},
+{"date":"2026-03-30T00:00:00","enrollment":35773,"left":6670,"right":34766},
+{"date":"2026-03-30T00:00:00","enrollment":36181,"left":6676,"right":35198},
+{"date":"2026-03-31T00:00:00","enrollment":36679,"left":6748,"right":35684},
+{"date":"2026-03-31T00:00:00","enrollment":39097,"left":7262,"right":38030},
+{"date":"2026-04-01T00:00:00","enrollment":40285,"left":7346,"right":39212},
+{"date":"2026-04-01T00:00:00","enrollment":40050,"left":7337,"right":38977},
+{"date":"2026-04-02T00:00:00","enrollment":40050,"left":7343,"right":39043},
+{"date":"2026-04-02T00:00:00","enrollment":39702,"left":7156,"right":38641},
+{"date":"2026-04-03T00:00:00","enrollment":40068,"left":7288,"right":38983},
+{"date":"2026-04-03T00:00:00","enrollment":39642,"left":7198,"right":38569},
+{"date":"2026-04-03T00:00:00","enrollment":39972,"left":7234,"right":38887},
+{"date":"2026-04-04T00:00:00","enrollment":39810,"left":7188,"right":38737},
+{"date":"2026-04-05T00:00:00","enrollment":40051,"left":7236,"right":38972},
+{"date":"2026-04-06T00:00:00","enrollment":40489,"left":7348,"right":39392},
+{"date":"2026-04-07T00:00:00","enrollment":40890,"left":7361,"right":39811},
+{"date":"2026-04-08T00:00:00","enrollment":41245,"left":7457,"right":40178},
+{"date":"2026-04-09T00:00:00","enrollment":41431,"left":7505,"right":40346},
+{"date":"2026-04-10T00:00:00","enrollment":41845,"left":7547,"right":40640},
+{"date":"2026-04-11T00:00:00","enrollment":42079,"left":7500,"right":40862},
+{"date":"2026-04-12T00:00:00","enrollment":42043,"left":7445,"right":40838},
+{"date":"2026-04-16T00:00:00","enrollment":43387,"left":7681,"right":42188},
+{"date":"2026-04-17T00:00:00","enrollment":43652,"left":7823,"right":42345},
+{"date":"2026-04-18T00:00:00","enrollment":44048,"left":7853,"right":42723},
+{"date":"2026-04-19T00:00:00","enrollment":44378,"left":7907,"right":43041},
+{"date":"2026-04-20T00:00:00","enrollment":44768,"left":7998,"right":43431},
+{"date":"2026-04-21T00:00:00","enrollment":45278,"left":8046,"right":43947},
+{"date":"2026-04-22T00:00:00","enrollment":45848,"left":8189,"right":44523},
+{"date":"2026-04-22T00:00:00","enrollment":45746,"left":8147,"right":44427},
+{"date":"2026-04-23T00:00:00","enrollment":46184,"left":8249,"right":44841},
+{"date":"2026-04-23T22:53:00","enrollment":46682,"left":8345,"right":45327},
+{"date":"2026-04-24T07:33:00","enrollment":46856,"left":8357,"right":45501},
+{"date":"2026-04-25T09:30:00","enrollment":47618,"left":8454,"right":46257},
+{"date":"2026-04-25T22:59:00","enrollment":47738,"left":8447,"right":46359},
+{"date":"2026-04-26T09:30:00","enrollment":47888,"left":8453,"right":46521},
+{"date":"2026-04-27T08:49:00","enrollment":47983,"left":8447,"right":46598}
+];
+// ═══════════════════════════════════════════════════════════
+
+// Parse dates
+const ALL = RAW_DATA.map(r => ({ ...r, ts: new Date(r.date).getTime() }))
+  .sort((a, b) => a.ts - b.ts);
+
+// State
+let currentPeriod = 'all';
+let customFrom = null, customTo = null;
+const charts = {};
+
+// ── Filtering ─────────────────────────────────────────────
+function filterData(period, from, to) {
+  if (period === 'all') return ALL;
+  if (period === 'custom' && from && to) {
+    return ALL.filter(r => r.ts >= from && r.ts <= to);
+  }
+  const days = parseInt(period);
+  const cutoff = Date.now() - days * 86400000;
+  return ALL.filter(r => r.ts >= cutoff);
+}
+
+// ── Formatting ────────────────────────────────────────────
+function fmt(n) { return n.toLocaleString('ru-RU'); }
+function fmtDate(ts) {
+  return new Date(ts).toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit' });
+}
+function fmtFull(ts) {
+  return new Date(ts).toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+
+// ── KPI cards ─────────────────────────────────────────────
+function updateKPIs(data) {
+  if (!data.length) return;
+  const last  = data[data.length - 1];
+  const first = data[0];
+
+  const fields = [
+    { key:'enrollment', elV:'kpi-enroll', elD:'kpi-enroll-delta' },
+    { key:'left',       elV:'kpi-left',   elD:'kpi-left-delta'   },
+    { key:'right',      elV:'kpi-right',  elD:'kpi-right-delta'  },
+  ];
+
+  fields.forEach(({ key, elV, elD }) => {
+    const val   = last[key];
+    const delta = val - first[key];
+    const pct   = ((delta / first[key]) * 100).toFixed(1);
+    document.getElementById(elV).textContent = fmt(val);
+    const sign = delta >= 0 ? '+' : '';
+    const cls  = delta >= 0 ? 'pos' : 'neg';
+    document.getElementById(elD).innerHTML =
+      `<span class="${cls}">${sign}${fmt(delta)} (${sign}${pct}%)</span> за период`;
+  });
+
+  document.getElementById('date-range-label').textContent =
+    `${fmtFull(first.ts)} — ${fmtFull(last.ts)} · ${data.length} записей`;
+}
+
+// ── Chart helpers ─────────────────────────────────────────
+const CHART_DEFAULTS = {
+  responsive: true,
+  maintainAspectRatio: false,
+  interaction: { mode: 'index', intersect: false },
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: '#1C2030',
+      borderColor: 'rgba(255,255,255,0.08)',
+      borderWidth: 1,
+      titleColor: '#9CA3AF',
+      bodyColor: '#E8EAF0',
+      padding: 12,
+      callbacks: {
+        title: items => {
+          const d = new Date(items[0].parsed.x);
+          return d.toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+        },
+        label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`
+      }
+    }
+  },
+  scales: {
+    x: {
+      type: 'time',
+      time: { unit: 'day', displayFormats: { day: 'dd.MM' } },
+      grid: { color: 'rgba(255,255,255,0.04)' },
+      ticks: { color: '#6B7280', font: { family: 'Onest', size: 11 }, maxRotation: 45 },
+      border: { display: false },
+    },
+    y: {
+      grid: { color: 'rgba(255,255,255,0.04)' },
+      ticks: {
+        color: '#6B7280',
+        font: { family: 'Onest', size: 11 },
+        callback: v => fmt(v)
+      },
+      border: { display: false },
+    }
+  }
+};
+
+function makeDataset(data, key, color, label) {
+  return {
+    label,
+    data: data.map(r => ({ x: r.ts, y: r[key] })),
+    borderColor: color,
+    backgroundColor: color.replace(')', ', 0.12)').replace('rgb', 'rgba'),
+    borderWidth: 2,
+    pointRadius: data.length > 40 ? 0 : 3,
+    pointHoverRadius: 5,
+    tension: 0.35,
+    fill: true,
+  };
+}
+
+function makeChart(id, datasets, extraScales) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id).getContext('2d');
+  const opts = JSON.parse(JSON.stringify(CHART_DEFAULTS));
+  if (extraScales) Object.assign(opts.scales, extraScales);
+  charts[id] = new Chart(ctx, { type: 'line', data: { datasets }, options: opts });
+}
+
+// ── Build all charts ──────────────────────────────────────
+function buildCharts(data) {
+  const eColor = '#5B9CF6', lColor = '#FF6B6B', rColor = '#FFB547';
+
+  // Combined — dual Y axis: enrollment+right left, left team right
+  makeChart('chart-combined', [
+    makeDataset(data, 'enrollment', eColor, 'Enrollment'),
+    makeDataset(data, 'right',      rColor, 'Right Team'),
+    { ...makeDataset(data, 'left', lColor, 'Left Team'), yAxisID: 'yLeft' },
+  ], {
+    yLeft: {
+      position: 'right',
+      grid: { drawOnChartArea: false },
+      ticks: {
+        color: lColor,
+        font: { family: 'Onest', size: 11 },
+        callback: v => fmt(v)
+      },
+      border: { display: false },
+    }
+  });
+
+  // Individual charts
+  makeChart('chart-enroll', [makeDataset(data, 'enrollment', eColor, 'Enrollment')]);
+  makeChart('chart-left',   [makeDataset(data, 'left',       lColor, 'Left Team')]);
+  makeChart('chart-right',  [makeDataset(data, 'right',      rColor, 'Right Team')]);
+}
+
+// ── Render ────────────────────────────────────────────────
+function render() {
+  const data = filterData(currentPeriod, customFrom, customTo);
+  updateKPIs(data);
+  buildCharts(data);
+}
+
+// ── Period buttons ────────────────────────────────────────
+document.querySelectorAll('.period-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentPeriod = btn.dataset.period;
+    const cr = document.getElementById('custom-range');
+    if (currentPeriod === 'custom') {
+      cr.classList.add('visible');
+    } else {
+      cr.classList.remove('visible');
+      render();
+    }
+  });
+});
+
+// ── Custom range ──────────────────────────────────────────
+document.getElementById('apply-custom').addEventListener('click', () => {
+  const from = document.getElementById('date-from').value;
+  const to   = document.getElementById('date-to').value;
+  if (from && to) {
+    customFrom = new Date(from).getTime();
+    customTo   = new Date(to).getTime() + 86399999; // end of day
+    render();
+  }
+});
+
+// ── Init ──────────────────────────────────────────────────
+// Set default date inputs
+const today = new Date().toISOString().slice(0, 10);
+const week  = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+document.getElementById('date-from').value = week;
+document.getElementById('date-to').value   = today;
+
+// Chart.js time adapter (minimal inline)
+Chart.defaults.plugins.legend.display = false;
+
+render();
+</script>
+</body>
+</html>
