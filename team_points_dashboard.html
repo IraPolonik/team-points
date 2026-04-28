@@ -2,334 +2,80 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Team Points Dashboard</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;600;700&family=Onest:wght@300;400;500&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Team Points</title>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --bg:        #0D0F14;
-    --surface:   #151820;
-    --surface2:  #1C2030;
-    --border:    rgba(255,255,255,0.06);
-    --enroll:    #5B9CF6;
-    --left:      #FF6B6B;
-    --right:     #FFB547;
-    --enroll-dim:rgba(91,156,246,0.12);
-    --left-dim:  rgba(255,107,107,0.12);
-    --right-dim: rgba(255,181,71,0.12);
-    --text:      #E8EAF0;
-    --muted:     #6B7280;
-    --radius:    16px;
-  }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Onest', sans-serif;
-    min-height: 100vh;
-    padding: 32px 24px 60px;
-  }
-
-  /* ── Header ── */
-  .header {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 20px;
-    margin-bottom: 36px;
-  }
-  .header-left h1 {
-    font-family: 'Unbounded', sans-serif;
-    font-size: clamp(22px, 4vw, 36px);
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    line-height: 1.1;
-    background: linear-gradient(135deg, #fff 0%, #8ca8d8 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  .header-left p {
-    color: var(--muted);
-    font-size: 13px;
-    margin-top: 6px;
-    font-weight: 300;
-  }
-
-  /* ── Period selector ── */
-  .period-bar {
-    display: flex;
-    gap: 6px;
-    background: var(--surface);
-    padding: 5px;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    flex-wrap: wrap;
-  }
-  .period-btn {
-    padding: 8px 16px;
-    border-radius: 8px;
-    border: none;
-    background: transparent;
-    color: var(--muted);
-    font-family: 'Onest', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
-  }
-  .period-btn:hover { color: var(--text); background: var(--surface2); }
-  .period-btn.active {
-    background: #5B9CF6;
-    color: #fff;
-    font-weight: 600;
-  }
-
-  /* ── Custom range ── */
-  .custom-range {
-    display: none;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-bottom: 20px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px 20px;
-  }
-  .custom-range.visible { display: flex; }
-  .custom-range label { color: var(--muted); font-size: 13px; }
-  .custom-range input[type="date"] {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    border-radius: 8px;
-    padding: 7px 12px;
-    font-family: 'Onest', sans-serif;
-    font-size: 13px;
-    cursor: pointer;
-  }
-  .custom-range input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
-  .apply-btn {
-    padding: 8px 18px;
-    border-radius: 8px;
-    border: none;
-    background: var(--enroll);
-    color: #fff;
-    font-family: 'Onest', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: opacity 0.2s;
-  }
-  .apply-btn:hover { opacity: 0.85; }
-
-  /* ── KPI cards ── */
-  .kpi-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 14px;
-    margin-bottom: 28px;
-  }
-  .kpi {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px 22px;
-    position: relative;
-    overflow: hidden;
-  }
-  .kpi::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-  }
-  .kpi.enroll::before { background: var(--enroll); }
-  .kpi.left::before   { background: var(--left); }
-  .kpi.right::before  { background: var(--right); }
-  .kpi-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px; font-weight: 500; }
-  .kpi-value { font-family: 'Unbounded', sans-serif; font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
-  .kpi.enroll .kpi-value { color: var(--enroll); }
-  .kpi.left   .kpi-value { color: var(--left); }
-  .kpi.right  .kpi-value { color: var(--right); }
-  .kpi-delta { font-size: 12px; color: var(--muted); margin-top: 4px; }
-  .kpi-delta .pos { color: #4ade80; }
-  .kpi-delta .neg { color: var(--left); }
-
-  /* ── Charts ── */
-  .chart-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 24px 28px;
-    margin-bottom: 20px;
-  }
-  .chart-title {
-    font-family: 'Unbounded', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    color: var(--muted);
-    text-transform: uppercase;
-    margin-bottom: 20px;
-  }
-  .chart-wrap { position: relative; height: 260px; }
-  .chart-wrap.tall { height: 320px; }
-
-  .sub-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 20px;
-  }
-
-  /* ── Footer ── */
-  .footer {
-    text-align: center;
-    color: var(--muted);
-    font-size: 12px;
-    margin-top: 40px;
-  }
-
-  /* ── How to update section ── */
-  .update-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 24px 28px;
-    margin-bottom: 20px;
-  }
-  .update-card summary {
-    font-family: 'Unbounded', sans-serif;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    color: var(--muted);
-    text-transform: uppercase;
-    cursor: pointer;
-    user-select: none;
-    list-style: none;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .update-card summary::before { content: '▶'; font-size: 9px; transition: transform 0.2s; }
-  .update-card[open] summary::before { transform: rotate(90deg); }
-  .update-card .instructions {
-    margin-top: 18px;
-    display: grid;
-    gap: 10px;
-  }
-  .step {
-    display: flex;
-    gap: 14px;
-    align-items: flex-start;
-    font-size: 13px;
-    color: var(--muted);
-    line-height: 1.6;
-  }
-  .step-num {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 50%;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--enroll);
-    flex-shrink: 0;
-    margin-top: 1px;
-  }
-  code {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 1px 6px;
-    font-size: 12px;
-    color: var(--right);
-    font-family: 'Courier New', monospace;
-  }
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0D0F14;--surface:#151820;--surface2:#1C2030;
+  --border:rgba(255,255,255,0.07);
+  --blue:#5B9CF6;--red:#FF6B6B;--amber:#FFB547;
+  --text:#E8EAF0;--muted:#6B7280;--r:14px;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;padding:20px 16px 48px}
+h1{font-size:clamp(20px,5vw,32px);font-weight:800;letter-spacing:-0.03em;background:linear-gradient(135deg,#fff 0%,#8ca8d8 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
+.subtitle{color:var(--muted);font-size:12px;margin-bottom:20px}
+.periods{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px;background:var(--surface);padding:5px;border-radius:12px;border:1px solid var(--border)}
+.pb{flex:1;min-width:60px;padding:8px 4px;border-radius:8px;border:none;background:transparent;color:var(--muted);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;text-align:center;transition:all .2s}
+.pb:hover{color:var(--text)}
+.pb.on{background:var(--blue);color:#fff;font-weight:700}
+.custom-row{display:none;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px}
+.custom-row.vis{display:flex}
+.custom-row label{color:var(--muted);font-size:12px}
+.custom-row input{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 10px;font-size:12px}
+.custom-row input::-webkit-calendar-picker-indicator{filter:invert(.5)}
+.apply{padding:7px 14px;border-radius:8px;border:none;background:var(--blue);color:#fff;font-size:12px;font-weight:600;cursor:pointer}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.e::before{background:var(--blue)}.kpi.l::before{background:var(--red)}.kpi.r::before{background:var(--amber)}
+.kpi-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px}
+.kpi-val{font-size:clamp(14px,3.5vw,22px);font-weight:800;letter-spacing:-0.02em}
+.kpi.e .kpi-val{color:var(--blue)}.kpi.l .kpi-val{color:var(--red)}.kpi.r .kpi-val{color:var(--amber)}
+.kpi-d{font-size:10px;color:var(--muted);margin-top:3px}
+.pos{color:#4ade80}.neg{color:var(--red)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px}
+.card-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:12px}
+.card-title.blue{color:var(--blue)}.card-title.red{color:var(--red)}.card-title.amber{color:var(--amber)}
+canvas{display:block;width:100%!important}
+#tip{position:fixed;background:#1C2030;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;font-size:12px;pointer-events:none;display:none;z-index:999;min-width:160px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+#tip .tip-date{color:var(--muted);margin-bottom:6px;font-size:11px}
+#tip .tip-row{display:flex;justify-content:space-between;gap:16px;margin:2px 0}
+#tip .dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle}
 </style>
 </head>
 <body>
-
-<div class="header">
-  <div class="header-left">
-    <h1>Team Points</h1>
-    <p id="date-range-label">Загрузка данных…</p>
-  </div>
-  <div class="period-bar">
-    <button class="period-btn active" data-period="all">Всё время</button>
-    <button class="period-btn" data-period="3d">3 дня</button>
-    <button class="period-btn" data-period="7d">Неделя</button>
-    <button class="period-btn" data-period="14d">2 недели</button>
-    <button class="period-btn" data-period="21d">3 недели</button>
-    <button class="period-btn" data-period="custom">Свой период</button>
-  </div>
+<h1>Team Points</h1>
+<div class="subtitle" id="sub">—</div>
+<div class="periods">
+  <button class="pb on" data-p="all">Всё время</button>
+  <button class="pb" data-p="3">3 дня</button>
+  <button class="pb" data-p="7">Неделя</button>
+  <button class="pb" data-p="14">2 недели</button>
+  <button class="pb" data-p="21">3 недели</button>
+  <button class="pb" data-p="custom">Свой</button>
 </div>
-
-<div class="custom-range" id="custom-range">
-  <label>С</label>
-  <input type="date" id="date-from">
-  <label>по</label>
-  <input type="date" id="date-to">
-  <button class="apply-btn" id="apply-custom">Применить</button>
+<div class="custom-row" id="cr">
+  <label>С</label><input type="date" id="df">
+  <label>по</label><input type="date" id="dt">
+  <button class="apply" id="ab">OK</button>
 </div>
-
-<div class="kpi-row">
-  <div class="kpi enroll">
-    <div class="kpi-label">Enrollment</div>
-    <div class="kpi-value" id="kpi-enroll">—</div>
-    <div class="kpi-delta" id="kpi-enroll-delta"></div>
-  </div>
-  <div class="kpi left">
-    <div class="kpi-label">Left Team</div>
-    <div class="kpi-value" id="kpi-left">—</div>
-    <div class="kpi-delta" id="kpi-left-delta"></div>
-  </div>
-  <div class="kpi right">
-    <div class="kpi-label">Right Team</div>
-    <div class="kpi-value" id="kpi-right">—</div>
-    <div class="kpi-delta" id="kpi-right-delta"></div>
-  </div>
+<div class="kpis">
+  <div class="kpi e"><div class="kpi-lbl">Enrollment</div><div class="kpi-val" id="ve">—</div><div class="kpi-d" id="de"></div></div>
+  <div class="kpi l"><div class="kpi-lbl">Left</div><div class="kpi-val" id="vl">—</div><div class="kpi-d" id="dl"></div></div>
+  <div class="kpi r"><div class="kpi-lbl">Right</div><div class="kpi-val" id="vr">—</div><div class="kpi-d" id="dr"></div></div>
 </div>
-
-<div class="chart-card">
-  <div class="chart-title">Все показатели</div>
-  <div class="chart-wrap tall"><canvas id="chart-combined"></canvas></div>
-</div>
-
-<div class="sub-grid">
-  <div class="chart-card">
-    <div class="chart-title" style="color:var(--enroll)">Enrollment Team Points</div>
-    <div class="chart-wrap"><canvas id="chart-enroll"></canvas></div>
-  </div>
-  <div class="chart-card">
-    <div class="chart-title" style="color:var(--left)">Left Team Points</div>
-    <div class="chart-wrap"><canvas id="chart-left"></canvas></div>
-  </div>
-  <div class="chart-card">
-    <div class="chart-title" style="color:var(--right)">Right Team Points</div>
-    <div class="chart-wrap"><canvas id="chart-right"></canvas></div>
-  </div>
-</div>
-
-<div class="footer">Team Points Dashboard · данные обновляются вручную · открывается в любом браузере</div>
+<div class="card"><div class="card-title">Все показатели</div><canvas id="c0" height="200"></canvas></div>
+<div class="card"><div class="card-title blue">Enrollment Team Points</div><canvas id="c1" height="160"></canvas></div>
+<div class="card"><div class="card-title red">Left Team Points</div><canvas id="c2" height="160"></canvas></div>
+<div class="card"><div class="card-title amber">Right Team Points</div><canvas id="c3" height="160"></canvas></div>
+<div id="tip"><div class="tip-date" id="td"></div><div id="tb"></div></div>
 
 <script>
-// ═══════════════════════════════════════════════════════════
-// ДАННЫЕ — добавляй новые строки сюда перед закрывающей ];
-// ═══════════════════════════════════════════════════════════
-const RAW_DATA = [
+// ═══════════════════════════════════════════════
+// ДАННЫЕ — добавляй строки перед закрывающей ];
+// ═══════════════════════════════════════════════
+const DATA=[
 {"date":"2026-01-01T00:00:00","enrollment":30030,"left":6035,"right":29551},
 {"date":"2026-03-08T00:00:00","enrollment":31528,"left":6125,"right":30611},
 {"date":"2026-03-18T00:00:00","enrollment":32506,"left":6257,"right":31577},
@@ -380,204 +126,194 @@ const RAW_DATA = [
 {"date":"2026-04-25T09:30:00","enrollment":47618,"left":8454,"right":46257},
 {"date":"2026-04-25T22:59:00","enrollment":47738,"left":8447,"right":46359},
 {"date":"2026-04-26T09:30:00","enrollment":47888,"left":8453,"right":46521},
-{"date":"2026-04-27T08:49:00","enrollment":47983,"left":8447,"right":46598}
+{"date":"2026-04-27T08:49:00","enrollment":47983,"left":8447,"right":46598},
+{"date":"2026-04-27T22:02:00","enrollment":48337,"left":8483,"right":46964},
+{"date":"2026-04-28T09:31:00","enrollment":48481,"left":8501,"right":47090}
 ];
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 
-// Parse dates
-const ALL = RAW_DATA.map(r => ({ ...r, ts: new Date(r.date).getTime() }))
-  .sort((a, b) => a.ts - b.ts);
+const ALL=DATA.map(r=>({...r,ts:new Date(r.date).getTime()})).sort((a,b)=>a.ts-b.ts);
+let period='all',fromTs=null,toTs=null;
+const tip=document.getElementById('tip');
 
-// State
-let currentPeriod = 'all';
-let customFrom = null, customTo = null;
-const charts = {};
-
-// ── Filtering ─────────────────────────────────────────────
-function filterData(period, from, to) {
-  if (period === 'all') return ALL;
-  if (period === 'custom' && from && to) {
-    return ALL.filter(r => r.ts >= from && r.ts <= to);
-  }
-  const days = parseInt(period);
-  const cutoff = Date.now() - days * 86400000;
-  return ALL.filter(r => r.ts >= cutoff);
+function filtered(){
+  if(period==='all') return ALL;
+  if(period==='custom'&&fromTs&&toTs) return ALL.filter(r=>r.ts>=fromTs&&r.ts<=toTs);
+  const cut=Date.now()-parseInt(period)*86400000;
+  return ALL.filter(r=>r.ts>=cut);
 }
 
-// ── Formatting ────────────────────────────────────────────
-function fmt(n) { return n.toLocaleString('ru-RU'); }
-function fmtDate(ts) {
-  return new Date(ts).toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit' });
-}
-function fmtFull(ts) {
-  return new Date(ts).toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric' });
-}
+const fmtN=n=>Math.round(n).toLocaleString('ru-RU');
+const fmtDs=(ts)=>new Date(ts).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'});
+const fmtDl=(ts)=>new Date(ts).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
+const fmtDT=(ts)=>new Date(ts).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
 
-// ── KPI cards ─────────────────────────────────────────────
-function updateKPIs(data) {
-  if (!data.length) return;
-  const last  = data[data.length - 1];
-  const first = data[0];
-
-  const fields = [
-    { key:'enrollment', elV:'kpi-enroll', elD:'kpi-enroll-delta' },
-    { key:'left',       elV:'kpi-left',   elD:'kpi-left-delta'   },
-    { key:'right',      elV:'kpi-right',  elD:'kpi-right-delta'  },
-  ];
-
-  fields.forEach(({ key, elV, elD }) => {
-    const val   = last[key];
-    const delta = val - first[key];
-    const pct   = ((delta / first[key]) * 100).toFixed(1);
-    document.getElementById(elV).textContent = fmt(val);
-    const sign = delta >= 0 ? '+' : '';
-    const cls  = delta >= 0 ? 'pos' : 'neg';
-    document.getElementById(elD).innerHTML =
-      `<span class="${cls}">${sign}${fmt(delta)} (${sign}${pct}%)</span> за период`;
+function updateKPIs(data){
+  if(!data.length) return;
+  const f=data[0],l=data[data.length-1];
+  [['enrollment','ve','de'],['left','vl','dl'],['right','vr','dr']].forEach(([k,vi,di])=>{
+    const v=l[k],d=v-f[k];
+    document.getElementById(vi).textContent=fmtN(v);
+    document.getElementById(di).innerHTML=`<span class="${d>=0?'pos':'neg'}">${d>=0?'+':''}${fmtN(d)}</span>`;
   });
-
-  document.getElementById('date-range-label').textContent =
-    `${fmtFull(first.ts)} — ${fmtFull(last.ts)} · ${data.length} записей`;
+  document.getElementById('sub').textContent=`${fmtDl(f.ts)} — ${fmtDl(l.ts)} · ${data.length} записей`;
 }
 
-// ── Chart helpers ─────────────────────────────────────────
-const CHART_DEFAULTS = {
-  responsive: true,
-  maintainAspectRatio: false,
-  interaction: { mode: 'index', intersect: false },
-  plugins: {
-    legend: { display: false },
-    tooltip: {
-      backgroundColor: '#1C2030',
-      borderColor: 'rgba(255,255,255,0.08)',
-      borderWidth: 1,
-      titleColor: '#9CA3AF',
-      bodyColor: '#E8EAF0',
-      padding: 12,
-      callbacks: {
-        title: items => {
-          const d = new Date(items[0].parsed.x);
-          return d.toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
-        },
-        label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`
-      }
-    }
-  },
-  scales: {
-    x: {
-      type: 'time',
-      time: { unit: 'day', displayFormats: { day: 'dd.MM' } },
-      grid: { color: 'rgba(255,255,255,0.04)' },
-      ticks: { color: '#6B7280', font: { family: 'Onest', size: 11 }, maxRotation: 45 },
-      border: { display: false },
-    },
-    y: {
-      grid: { color: 'rgba(255,255,255,0.04)' },
-      ticks: {
-        color: '#6B7280',
-        font: { family: 'Onest', size: 11 },
-        callback: v => fmt(v)
-      },
-      border: { display: false },
+const DPR=window.devicePixelRatio||1;
+
+function niceScale(mn,mx,t=5){
+  const r=mx-mn||1;
+  let s=Math.pow(10,Math.floor(Math.log10(r/t)));
+  const e=t/r*s;
+  if(e<=.15)s*=10;else if(e<=.35)s*=5;else if(e<=.75)s*=2;
+  return{min:Math.floor(mn/s)*s,max:Math.ceil(mx/s)*s,step:s};
+}
+
+function drawChart(id,series,data){
+  const canvas=document.getElementById(id);
+  const W=canvas.parentElement.clientWidth-32;
+  const H=parseInt(canvas.getAttribute('height'));
+  canvas.width=W*DPR;canvas.height=H*DPR;
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.scale(DPR,DPR);
+
+  if(!data.length) return;
+
+  const hasRight=series.some(s=>s.axis==='right');
+  const pad={top:12,right:hasRight?52:8,bottom:34,left:52};
+  const cw=W-pad.left-pad.right,ch=H-pad.top-pad.bottom;
+
+  const ts=data.map(r=>r.ts);
+  const minT=ts[0],maxT=ts[ts.length-1],rT=maxT-minT||1;
+
+  const mainV=series.filter(s=>s.axis!=='right').flatMap(s=>data.map(r=>r[s.key]));
+  const sc=niceScale(Math.min(...mainV),Math.max(...mainV));
+  let scR=null;
+  if(hasRight){
+    const rv=series.filter(s=>s.axis==='right').flatMap(s=>data.map(r=>r[s.key]));
+    scR=niceScale(Math.min(...rv),Math.max(...rv));
+  }
+
+  // Grid + Y labels
+  ctx.font=`${10*1}px -apple-system,sans-serif`;
+  let y=sc.min;
+  while(y<=sc.max+sc.step*.01){
+    const py=pad.top+ch-(y-sc.min)/(sc.max-sc.min)*ch;
+    ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(pad.left,py);ctx.lineTo(pad.left+cw,py);ctx.stroke();
+    ctx.fillStyle='#4B5563';ctx.textAlign='right';ctx.textBaseline='middle';
+    ctx.fillText(fmtN(y),pad.left-5,py);
+    y+=sc.step;
+  }
+  if(scR){
+    let yr=scR.min;
+    while(yr<=scR.max+scR.step*.01){
+      const py=pad.top+ch-(yr-scR.min)/(scR.max-scR.min)*ch;
+      ctx.fillStyle='#FF6B6B66';ctx.textAlign='left';ctx.textBaseline='middle';
+      ctx.fillText(fmtN(yr),pad.left+cw+4,py);
+      yr+=scR.step;
     }
   }
-};
 
-function makeDataset(data, key, color, label) {
-  return {
-    label,
-    data: data.map(r => ({ x: r.ts, y: r[key] })),
-    borderColor: color,
-    backgroundColor: color.replace(')', ', 0.12)').replace('rgb', 'rgba'),
-    borderWidth: 2,
-    pointRadius: data.length > 40 ? 0 : 3,
-    pointHoverRadius: 5,
-    tension: 0.35,
-    fill: true,
-  };
-}
+  // X labels
+  const nL=Math.min(data.length,6);
+  const step=Math.max(1,Math.floor(data.length/(nL-1)));
+  ctx.fillStyle='#4B5563';ctx.textAlign='center';ctx.textBaseline='top';
+  for(let i=0;i<data.length;i+=step){
+    const px=pad.left+(data[i].ts-minT)/rT*cw;
+    ctx.fillText(fmtDs(data[i].ts),px,H-pad.bottom+6);
+  }
 
-function makeChart(id, datasets, extraScales) {
-  if (charts[id]) charts[id].destroy();
-  const ctx = document.getElementById(id).getContext('2d');
-  const opts = JSON.parse(JSON.stringify(CHART_DEFAULTS));
-  if (extraScales) Object.assign(opts.scales, extraScales);
-  charts[id] = new Chart(ctx, { type: 'line', data: { datasets }, options: opts });
-}
+  // Series
+  series.forEach(s=>{
+    const use=s.axis==='right'?scR:sc;
+    const pts=data.map(r=>({
+      x:pad.left+(r.ts-minT)/rT*cw,
+      y:pad.top+ch-(r[s.key]-use.min)/(use.max-use.min)*ch
+    }));
 
-// ── Build all charts ──────────────────────────────────────
-function buildCharts(data) {
-  const eColor = '#5B9CF6', lColor = '#FF6B6B', rColor = '#FFB547';
+    // Fill
+    ctx.beginPath();
+    pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
+    ctx.lineTo(pts[pts.length-1].x,pad.top+ch);
+    ctx.lineTo(pts[0].x,pad.top+ch);
+    ctx.closePath();
+    ctx.fillStyle=s.color+'22';ctx.fill();
 
-  // Combined — dual Y axis: enrollment+right left, left team right
-  makeChart('chart-combined', [
-    makeDataset(data, 'enrollment', eColor, 'Enrollment'),
-    makeDataset(data, 'right',      rColor, 'Right Team'),
-    { ...makeDataset(data, 'left', lColor, 'Left Team'), yAxisID: 'yLeft' },
-  ], {
-    yLeft: {
-      position: 'right',
-      grid: { drawOnChartArea: false },
-      ticks: {
-        color: lColor,
-        font: { family: 'Onest', size: 11 },
-        callback: v => fmt(v)
-      },
-      border: { display: false },
-    }
+    // Line
+    ctx.beginPath();ctx.strokeStyle=s.color;ctx.lineWidth=2.2;ctx.lineJoin='round';
+    pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
+    ctx.stroke();
   });
 
-  // Individual charts
-  makeChart('chart-enroll', [makeDataset(data, 'enrollment', eColor, 'Enrollment')]);
-  makeChart('chart-left',   [makeDataset(data, 'left',       lColor, 'Left Team')]);
-  makeChart('chart-right',  [makeDataset(data, 'right',      rColor, 'Right Team')]);
+  // Store for tooltip
+  canvas._meta={pad,cw,ch,minT,rT,series,data,sc,scR};
 }
 
-// ── Render ────────────────────────────────────────────────
-function render() {
-  const data = filterData(currentPeriod, customFrom, customTo);
+function bindTooltip(canvas){
+  function show(ex,ey){
+    const rect=canvas.getBoundingClientRect();
+    const mx=ex-rect.left;
+    const m=canvas._meta;if(!m)return;
+    const frac=(mx-m.pad.left)/m.cw;
+    if(frac<0||frac>1){tip.style.display='none';return;}
+    const tgt=m.minT+frac*m.rT;
+    let bi=0,bd=Infinity;
+    m.data.forEach((r,i)=>{const d=Math.abs(r.ts-tgt);if(d<bd){bd=d;bi=i;}});
+    const r=m.data[bi];
+    document.getElementById('td').textContent=fmtDT(r.ts);
+    document.getElementById('tb').innerHTML=m.series.map(s=>
+      `<div class="tip-row"><span><span class="dot" style="background:${s.color}"></span>${s.label}</span><strong>${fmtN(r[s.key])}</strong></div>`
+    ).join('');
+    tip.style.display='block';
+    const tx=ex+14,ty=ey-40;
+    tip.style.left=Math.min(tx,window.innerWidth-180)+'px';
+    tip.style.top=Math.max(ty,10)+'px';
+  }
+  canvas.addEventListener('mousemove',e=>show(e.clientX,e.clientY));
+  canvas.addEventListener('touchmove',e=>{e.preventDefault();show(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
+  canvas.addEventListener('mouseleave',()=>{tip.style.display='none';});
+  canvas.addEventListener('touchend',()=>setTimeout(()=>tip.style.display='none',1500));
+}
+
+const CHARTS=[
+  {id:'c0',series:[
+    {key:'enrollment',color:'#5B9CF6',label:'Enrollment'},
+    {key:'right',color:'#FFB547',label:'Right'},
+    {key:'left',color:'#FF6B6B',label:'Left',axis:'right'}
+  ]},
+  {id:'c1',series:[{key:'enrollment',color:'#5B9CF6',label:'Enrollment'}]},
+  {id:'c2',series:[{key:'left',color:'#FF6B6B',label:'Left'}]},
+  {id:'c3',series:[{key:'right',color:'#FFB547',label:'Right'}]},
+];
+
+function render(){
+  const data=filtered();
   updateKPIs(data);
-  buildCharts(data);
+  CHARTS.forEach(({id,series})=>{drawChart(id,series,data);bindTooltip(document.getElementById(id));});
 }
 
-// ── Period buttons ────────────────────────────────────────
-document.querySelectorAll('.period-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    currentPeriod = btn.dataset.period;
-    const cr = document.getElementById('custom-range');
-    if (currentPeriod === 'custom') {
-      cr.classList.add('visible');
-    } else {
-      cr.classList.remove('visible');
-      render();
-    }
+document.querySelectorAll('.pb').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.pb').forEach(b=>b.classList.remove('on'));
+    btn.classList.add('on');
+    period=btn.dataset.p;
+    document.getElementById('cr').classList.toggle('vis',period==='custom');
+    if(period!=='custom') render();
   });
 });
 
-// ── Custom range ──────────────────────────────────────────
-document.getElementById('apply-custom').addEventListener('click', () => {
-  const from = document.getElementById('date-from').value;
-  const to   = document.getElementById('date-to').value;
-  if (from && to) {
-    customFrom = new Date(from).getTime();
-    customTo   = new Date(to).getTime() + 86399999; // end of day
-    render();
-  }
+document.getElementById('ab').addEventListener('click',()=>{
+  const f=document.getElementById('df').value,t=document.getElementById('dt').value;
+  if(f&&t){fromTs=new Date(f).getTime();toTs=new Date(t).getTime()+86399999;render();}
 });
 
-// ── Init ──────────────────────────────────────────────────
-// Set default date inputs
-const today = new Date().toISOString().slice(0, 10);
-const week  = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
-document.getElementById('date-from').value = week;
-document.getElementById('date-to').value   = today;
-
-// Chart.js time adapter (minimal inline)
-Chart.defaults.plugins.legend.display = false;
+document.getElementById('df').value=new Date(Date.now()-7*86400000).toISOString().slice(0,10);
+document.getElementById('dt').value=new Date().toISOString().slice(0,10);
 
 render();
+window.addEventListener('resize',()=>{clearTimeout(window._rt);window._rt=setTimeout(render,150);});
 </script>
 </body>
 </html>
