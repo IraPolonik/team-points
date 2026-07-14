@@ -589,10 +589,20 @@ function buildCharts(data) {
 
   // Combined — dual Y axis: enrollment+right left, left team right
   makeChart('chart-combined', [
-    makeDataset(data, 'enrollment', eColor, 'Enrollment'),
-    makeDataset(data, 'right',      rColor, 'Right Team'),
-    { ...makeDataset(data, 'left', lColor, 'Left Team'), yAxisID: 'yLeft' },
-  ], {
+  {
+    ...makeDataset(data, 'enrollment', eColor, 'Enrollment'),
+    backgroundColor: 'rgba(91, 156, 246, 0.18)'
+  },
+  {
+    ...makeDataset(data, 'right', rColor, 'Right Team'),
+    backgroundColor: 'rgba(255, 181, 71, 0.18)'
+  },
+  {
+    ...makeDataset(data, 'left', lColor, 'Left Team'),
+    yAxisID: 'yLeft',
+    backgroundColor: 'rgba(255, 107, 107, 0.18)'
+  },
+], {
     yLeft: {
       position: 'right',
       grid: { drawOnChartArea: false },
